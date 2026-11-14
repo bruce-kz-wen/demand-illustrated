@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Matryoshka basis · Nonparametric demand, illustrated</title>
+  <link rel="stylesheet" href="vendor/katex/katex.min.css">
+  <link rel="stylesheet" href="css/style.css">
+  <script>
+    // A theme chosen earlier with the header button, applied before the first paint.
+    try { const t = localStorage.getItem('theme'); if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t; } catch (error) {}
+  </script>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap">
+    <p class="site-title">Nonparametric demand in high dimensions<span>illustrated</span></p>
+    <!-- One button per illustration; its panel below has the id "panel-" + data-tab. -->
+    <nav class="tabs" role="tablist" aria-label="Illustrations">
+      <button role="tab" id="tab-matryoshka" data-tab="matryoshka" aria-controls="panel-matryoshka" aria-selected="true">Matryoshka basis</button>
+    </nav>
+    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch between light and dark" title="Light / dark">
+      <svg viewBox="0 0 18 18" aria-hidden="true"><circle cx="9" cy="9" r="7" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M9 2a7 7 0 0 1 0 14z" fill="currentColor"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="wrap">
+<section class="tab-panel" id="panel-matryoshka" role="tabpanel" aria-labelledby="tab-matryoshka">
+
+  <header class="intro">
+    <h1>The Matryoshka basis</h1>
+    <p class="lede">To estimate demand without assuming its shape, the estimator builds the unknown function out of simple pieces: polynomials first, then splines that add finer and finer detail. The pieces come in a fixed order, coarse before fine. Adding one never changes the ones already there, like a nesting doll that closes around the dolls inside it.</p>
+    <p class="lede">Here the function has only two inputs, a product's index <span class="tex">\delta</span> and its price <span class="tex">p</span>. Type any function of the two and watch the pieces rebuild it.</p>
+  </header>
+
+  <!-- 1 ------------------------------------------------------------------- -->
+  <section class="step" aria-labelledby="mk-h-function">
+    <h2 id="mk-h-function"><span class="step-no">1</span>Choose a function</h2>
+    <p class="prose">Both inputs are rescaled to run from 0 to 1, as in the estimator.</p>
+    <div class="figure">
+      <div class="fn-row">
+        <label class="fn-label" for="mk-expr"><span class="tex">f(\delta,\,p)\;=</span></label>
+        <input id="mk-expr" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" autocorrect="off" aria-describedby="mk-expr-status">
+      </div>
+      <div class="fn-status" id="mk-expr-status" aria-live="polite"></div>
+      <div class="chips" id="mk-presets" role="group" aria-label="Examples"><span class="label">Examples</span></div>
+      <p class="hint">Write <code>delta</code> or <code>d</code> for δ. You can use <code>+ - * / ^</code>, parentheses, and <code>exp</code> <code>log</code> <code>sqrt</code> <code>abs</code> <code>sin</code> <code>cos</code> <code>tanh</code> <code>min</code> <code>max</code> <code>logistic</code> <code>normcdf</code> <code>step</code>.</p>
+      <div class="settings">
+        <div class="setting">
+          <span class="label" id="mk-weights-label">Cost of detail in <span class="tex">(\delta,\,p)</span></span>
+          <div class="seg" id="mk-weights" role="group" aria-labelledby="mk-weights-label"></div>
+        </div>
+        <div class="setting">
+          <span class="label" id="mk-kappa-label">Degree of the splines</span>
+          <div class="seg" id="mk-kappa" role="group" aria-labelledby="mk-kappa-label"></div>
+        </div>
+        <span class="label muted">The estimator uses cubic splines, cost ½ for the index and 1 or 2 for the price.</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2 ------------------------------------------------------------------- -->
+  <section class="step" aria-labelledby="mk-h-sum">
+    <h2 id="mk-h-sum"><span class="step-no">2</span>Add the pieces one at a time</h2>
+    <p class="prose">The approximation is a weighted sum of the first <span class="tex">N</span> pieces, with the weights that make its root-mean-square (RMS) error as small as it can be. Drag the slider or press play to add pieces one by one. Each doll is a resolution level, and the number under it counts the pieces up to that level: click a doll to use exactly those.</p>
+    <div class="figure">
+      <div class="transport">
+        <button class="btn" id="mk-play" type="button"></button>
+        <input id="mk-n" type="range" min="1" max="161" step="1" value="9" aria-label="Number of pieces in the sum">
+        <output id="mk-n-out" for="mk-n"></output>
+      </div>
+      <div class="dolls" id="mk-dolls" role="group" aria-label="Resolution levels"></div>
+      <dl class="stats">
+        <div class="stat"><dt>Pieces in the sum</dt><dd id="mk-stat-n"></dd></div>
+        <div class="stat"><dt>Dolls filled</dt><dd id="mk-stat-level"></dd></div>
+        <div class="stat"><dt>RMS error</dt><dd id="mk-stat-rms"></dd></div>
+        <div class="stat"><dt>Largest error</dt><dd id="mk-stat-sup"></dd></div>
+      </dl>
+
+      <div class="maps">
+        <figure class="map">
+          <figcaption>Target</figcaption>
+          <canvas id="mk-map-target" role="img" aria-label="Heat map of the target function over the index and the price"></canvas>
+          <div class="scale" id="mk-scale-target"></div>
+        </figure>
+        <figure class="map">
+          <figcaption id="mk-map-sum-title"></figcaption>
+          <canvas id="mk-map-approx" role="img" aria-label="Heat map of the sum of the first pieces"></canvas>
+          <div class="scale" id="mk-scale-approx"></div>
+        </figure>
+        <figure class="map">
+          <figcaption>Error <small>target minus sum</small></figcaption>
+          <canvas id="mk-map-error" role="img" aria-label="Heat map of the error, target minus sum"></canvas>
+          <div class="scale" id="mk-scale-error"></div>
+          <label class="check"><input type="checkbox" id="mk-magnify" checked> Rescale the colors as the error shrinks</label>
+        </figure>
+      </div>
+
+      <div class="charts">
+        <figure class="chart-card">
+          <figcaption>Cross-section</figcaption>
+          <div class="chart-head">
+            <div class="seg" id="mk-cut-axis" role="group" aria-label="Direction of the cross-section"></div>
+            <div class="grow">
+              <input id="mk-cut" type="range" min="0" max="1" step="0.005" value="0.5" aria-label="Where the cross-section is taken">
+              <output id="mk-cut-out" for="mk-cut"></output>
+            </div>
+          </div>
+          <div class="legend" id="mk-slice-legend"></div>
+          <div class="plot" id="mk-slice"></div>
+          <p class="caption">Click a map above to move the cross-section.</p>
+        </figure>
+        <figure class="chart-card">
+          <figcaption>RMS error as pieces are added <small>log scale</small></figcaption>
+          <div class="chart-head"><span class="label">Drag across the chart to change <span class="tex">N</span>. The table in part 3 lists every value.</span></div>
+          <div class="legend"></div>
+          <div class="plot" id="mk-error"></div>
+        </figure>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 ------------------------------------------------------------------- -->
+  <section class="step" aria-labelledby="mk-h-inside">
+    <h2 id="mk-h-inside"><span class="step-no">3</span>Look inside the dolls</h2>
+
+    <h3>One input first: a chain of curves</h3>
+    <p class="prose" id="mk-chain-text"></p>
+    <div class="figure">
+      <div class="chain" id="mk-chain"></div>
+      <p class="caption">Red where a curve is positive, blue where it is negative. A dot marks the knot a curve adds, ticks the knots it inherits.</p>
+    </div>
+
+    <h3>Two inputs: products of curves, cheapest first</h3>
+    <p class="prose">A piece is one curve in <span class="tex">\delta</span> times one curve in <span class="tex">p</span>, so the pieces fill a grid. Each curve has a cost that grows with its detail: its degree while it is a polynomial, then one common cost for all the knots of a level. The cost of a piece is the cost of its <span class="tex">\delta</span> curve times <span class="tex">a_\delta</span> plus the cost of its <span class="tex">p</span> curve times <span class="tex">a_p</span>, the two weights set in part 1. Pieces join the sum from cheapest to most expensive. A full grid would take every product up to some curve. The dictionary takes the cheap corner and leaves the rest for later.</p>
+    <div class="figure">
+      <div class="lattice-wrap"><canvas id="mk-lattice" role="img" aria-label="Grid of all products of a curve in the index and a curve in the price, showing which are in the sum"></canvas></div>
+      <div class="lattice-legend">
+        <span><i class="lit"></i>in the sum</span>
+        <span><i class="ghost"></i>next in line</span>
+        <span><i class="empty"></i>beyond the last level shown</span>
+        <span><i class="newest"></i>newest piece</span>
+      </div>
+      <div class="inside">
+        <div class="detail">
+          <figcaption id="mk-detail-title"></figcaption>
+          <div class="detail-body">
+            <canvas id="mk-detail-canvas" role="img" aria-label="The selected piece, with its curve in the index above and its curve in the price on the right"></canvas>
+            <div class="detail-text">
+              <div class="formula" id="mk-detail-formula"></div>
+              <dl id="mk-detail-facts"></dl>
+            </div>
+          </div>
+        </div>
+        <div class="terms">
+          <figcaption>The pieces in order <small>click a row to stop the sum there</small></figcaption>
+          <div class="terms-scroll" id="mk-terms-scroll">
+            <table>
+              <thead><tr><th class="num">#</th><th>Piece</th><th class="num">Cost</th><th class="num">Weight in the sum</th><th class="num">Error after</th></tr></thead>
+              <tbody id="mk-terms"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 ------------------------------------------------------------------- -->
+  <section class="step" aria-labelledby="mk-h-compare">
+    <h2 id="mk-h-compare"><span class="step-no">4</span>Compare with the full grid</h2>
+    <p class="prose">The standard alternative is a tensor-product basis: choose the curves for each input and use every product of them. In the grid of part 3 that is a whole rectangle, where the Matryoshka dictionary keeps only the cheap corner. A rectangle is at least as accurate as the corner it contains. What matters is how much accuracy the extra pieces buy, and how many of them there are. Each piece carries one parameter to estimate.</p>
+
+    <h3>Two inputs: the function above, with and without the sparsity</h3>
+    <p class="prose">Each point of the gray line is a full grid: the smallest rectangle that holds the first <span class="tex">N</span> pieces, for some <span class="tex">N</span>. Read the chart downward to compare the two errors at one size, or across to compare the sizes that reach one error. For smooth functions Theorem 1 of the note says what to expect: the Matryoshka error falls at the same rate as the full grid's, which is the best rate that any basis of that size can reach.</p>
+    <div class="figure">
+      <div class="compare">
+        <div>
+          <figcaption>The pieces each one uses <small>at the <span class="tex">N</span> of part 2</small></figcaption>
+          <div class="lattice-wrap"><canvas id="mk-box" role="img" aria-label="The pieces of the Matryoshka sum, and the rectangle of the full grid with the same curves"></canvas></div>
+          <div class="legend" id="mk-box-legend"></div>
+          <table class="mini">
+            <thead><tr><th></th><th class="num">Parameters</th><th class="num">RMS error</th></tr></thead>
+            <tbody id="mk-compare-rows"></tbody>
+          </table>
+        </div>
+        <figure class="chart-card">
+          <figcaption>RMS error against the number of parameters <small>both on log scales</small></figcaption>
+          <div class="legend" id="mk-compare-legend"></div>
+          <div class="plot" id="mk-compare"></div>
+          <p class="caption">The two marked points are the two rows of the table. Drag across the chart to change <span class="tex">N</span>.</p>
+        </figure>
+      </div>
+    </div>
+
+    <h3>Many inputs: where the full grid falls behind</h3>
+    <p class="prose">With two inputs a full grid is cheap. That changes as inputs are added. A demand system with <span class="tex">J</span> products has <span class="tex">2J</span> inputs, an index and a price for each product, and every new input multiplies the size of the full grid by the number of curves that input gets. The Matryoshka dictionary only adds the cheap products that involve it, so its size grows like a polynomial in the number of inputs.</p>
+    <p class="prose">The function here is the share of one product when <span class="tex">J</span> products and an outside good compete, with probit taste shocks as in the probit design of the note's simulations. Both errors can be computed for any <span class="tex">J</span>, up to the hundred inputs of fifty products.</p>
+    <div class="design" role="group" aria-labelledby="mk-dgp-title">
+      <h4 id="mk-dgp-title">The demand system</h4>
+      <p>Consumer <span class="tex">i</span> gets utility</p>
+      <div class="tex display">\begin{aligned} u_{ij} &amp;= \delta_j + \alpha_i\,p_j + \sigma\,\varepsilon_{ij} \qquad (j = 1, \dots, J) \\ u_{i0} &amp;= \sigma\,\varepsilon_{i0} \end{aligned}</div>
+      <p>from product <span class="tex">j</span> and <span class="tex">u_{i0}</span> from the outside good, and buys whichever gives the most.</p>
+      <dl class="spec">
+        <dt>Taste shocks</dt>
+        <dd><span class="tex">\varepsilon_{i0}, \dots, \varepsilon_{iJ}</span> are independent standard normal, and <span class="tex">\sigma^2 = \pi^2/6</span>, the variance of the shocks of a logit.</dd>
+        <dt>Price sensitivity</dt>
+        <dd><span class="tex">\alpha_i \sim N(-1,\ 0.15^2)</span>, independent of the shocks.</dd>
+        <dt>Simulated markets</dt>
+        <dd>Index <span class="tex">\delta_j = x_j + \xi_j</span> with <span class="tex">x_j \sim U[0,\,2]</span> and <span class="tex">\xi_j \sim N(1,\ 0.15^2)</span>.<br>Price <span class="tex">p_j = 2\,(z_j + \eta_j) + \xi_j</span> with <span class="tex">z_j \sim U[0,\,1]</span> and <span class="tex">\eta_j \sim U[0,\,0.1]</span>.</dd>
+      </dl>
+      <p>The function to approximate is the share of product 1. It depends on the index and the price of every product, <span class="tex">2J</span> inputs in all:</p>
+      <div class="tex display">s_1 \;=\; E_{\alpha} \int \phi(e) \prod_{k \neq 1} \Phi\Big(e + \frac{v_1 - v_k}{\sigma}\Big)\,de</div>
+      <p>where <span class="tex">v_k = \delta_k + \alpha\,p_k</span>, <span class="tex">v_0 = 0</span> for the outside good, and <span class="tex">\phi</span> and <span class="tex">\Phi</span> are the standard normal density and distribution function.</p>
+      <p>It is approximated on the box <span class="tex">\delta_j \in [0.5,\ 3.5]</span>, <span class="tex">p_j \in [0.5,\ 3.7]</span>, about the range of the simulated markets, with every input rescaled to run from 0 to 1. The error is a root mean square over that box, every point counted equally. The simulated markets themselves are not used.</p>
+    </div>
+    <div class="figure">
+      <div class="transport">
+        <label class="label" for="mk-products">Products</label>
+        <input id="mk-products" type="range" min="1" max="50" step="1" value="50">
+        <output id="mk-products-out" for="mk-products"></output>
+      </div>
+      <div class="settings bare">
+        <div class="setting">
+          <span class="label" id="mk-level-label">Resolution level</span>
+          <div class="seg" id="mk-level" role="group" aria-labelledby="mk-level-label"></div>
+        </div>
+        <span class="label muted" id="mk-level-hint"></span>
+      </div>
+      <p class="headline" id="mk-system-summary" aria-live="polite"></p>
+      <table class="mini">
+        <thead><tr><th></th><th class="num">Parameters</th><th class="num">RMS error</th></tr></thead>
+        <tbody id="mk-system-rows"></tbody>
+      </table>
+      <div class="charts">
+        <figure class="chart-card">
+          <figcaption id="mk-system-title"></figcaption>
+          <div class="legend" id="mk-system-legend"></div>
+          <div class="plot" id="mk-system"></div>
+        </figure>
+        <figure class="chart-card">
+          <figcaption>Number of parameters against the number of products <small id="mk-scaling-note"></small></figcaption>
+          <div class="legend" id="mk-scaling-legend"></div>
+          <div class="plot" id="mk-scaling"></div>
+        </figure>
+      </div>
+      <p class="caption">RMS error in percent of the error of the best constant. Ordering weights as in part 1 for the product's own index and price, 1 for those of each rival. A level is a doll of part 2, and half levels fall in between.</p>
+    </div>
+    <details class="method">
+      <summary>How the error of a grid too large to store is computed</summary>
+      <p>No list of parameters is ever formed. The error needs only the sum of their squares, and that sum collapses because the share and the pieces both split into one factor for each product.</p>
+      <ol>
+        <li><strong>Only a sum of squares is needed.</strong> The pieces are orthonormal, so the squared error of the best fit with a set <span class="tex">S</span> of pieces is the mean square of the function minus the squared weights of the pieces in the set:
+          <div class="tex display">\lVert f - f_S \rVert^2 \;=\; \lVert f \rVert^2 - \sum_{k \in S} \theta_k^2</div></li>
+        <li><strong>The share splits into factors.</strong> Fix a consumer's <span class="tex">\alpha</span> and the utility <span class="tex">t</span> that product 1 gives them. Product 1 is bought when every other option gives less than <span class="tex">t</span>, and with independent shocks those are independent events, one for each option:
+          <div class="tex display">s_1 \;=\; E_{\alpha} \int \tfrac{1}{\sigma}\,\phi\Big(\frac{t - v_1}{\sigma}\Big)\ \Phi\Big(\frac{t}{\sigma}\Big) \prod_{j \ge 2} \Phi\Big(\frac{t - v_j}{\sigma}\Big)\,dt</div>
+          On a mesh of values of <span class="tex">t</span>, for three values of <span class="tex">\alpha</span> that stand in for its normal distribution, the integral becomes a sum of a few hundred terms. Each term is a function of <span class="tex">(\delta_1, p_1)</span> multiplied by one function of <span class="tex">(\delta_j, p_j)</span> for every rival, the same function for each of them.</li>
+        <li><strong>The pieces split the same way.</strong> A piece is one curve for each input, so its weight in one term is <span class="tex">J</span> integrals over two inputs multiplied together, one for each product. Those integrals are computed once.</li>
+        <li><strong>The full grid</strong> holds every combination of curves, so the sum over the grid can be taken one product at a time. For each pair of terms it is one number for product 1, multiplied by one number for a rival raised to the power <span class="tex">J - 1</span>.</li>
+        <li><strong>The Matryoshka dictionary</strong> holds the combinations whose total cost is within the budget, and the cost of a piece is the sum of the costs for each product. Group the pieces of one product by cost, which gives a short polynomial with one term for each cost. Multiply the polynomials of the <span class="tex">J</span> products, and keep the terms whose cost is within the budget.</li>
+      </ol>
+      <p>The number of products enters only as the power <span class="tex">J - 1</span>, so fifty products take no longer than two. The same code agrees with integration over every input for one, two and three products, where that is still possible, and with the closed form of the logit shares at fifty products when the shocks are extreme value.</p>
+    </details>
+  </section>
+
+  <section class="notes" aria-labelledby="mk-h-notes">
+    <h2 id="mk-h-notes">From two inputs to the estimator</h2>
+    <ul>
+      <li><strong>What is fitted here.</strong> The weights above are a least-squares fit to a function you typed, so the error on this page is approximation error only. The estimator does not see the function. It estimates the weights from market data, under the shape restrictions that demand must satisfy, and it chooses <span class="tex">N</span> from the data.</li>
+      <li><strong>Ties.</strong> Pieces of equal cost enter in the order of the estimator's code: those that involve fewer inputs first, the rest by a balancing rule with a fixed random seed.</li>
+      <li><strong>Orientation.</strong> The estimator enters the price as <span class="tex">1 - p</span>, so that demand rises in every coordinate. That mirrors the pieces in <span class="tex">p</span> and changes nothing else.</li>
+    </ul>
+  </section>
+
+</section>
+</main>
+
+<footer class="wrap site-footer">Companion to &ldquo;Fully Flexible Nonparametric Estimation of Demand in High Dimensions&rdquo;.</footer>
+
+<script src="vendor/katex/katex.min.js"></script>
+<script src="js/core.js"></script>
+<script src="js/mathexpr.js"></script>
+<script src="js/viz.js"></script>
+<script src="js/app.js"></script>
+<script src="js/matryoshka.js"></script>
+</body>
+</html>
